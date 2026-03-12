@@ -58,4 +58,4 @@ class CarbonAwareCoordinator(DataUpdateCoordinator):
         except (asyncio.TimeoutError, aiohttp.ClientError) as err:
             raise UpdateFailed(f"Error communicating with API: {err}")
         except Exception as err:
-            raise UpdateFailed(retry_after=60)
+            raise UpdateFailed(f"Error: {err}", retry_after=60)

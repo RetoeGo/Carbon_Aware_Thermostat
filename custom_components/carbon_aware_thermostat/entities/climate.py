@@ -9,20 +9,26 @@ from ..coordinator import CarbonAwareCoordinator
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up climate entity based on config entry."""
+
+    # pull-based api data (e.g., carbon intensity, weather forecast, etc.)
     api = hass.data[DOMAIN][entry.entry_id]
+
     coordinator = CarbonAwareCoordinator(hass, entry, api)
-    # indoor_temp_sensor = entry.data.get("indoor_temp_sensor")
+
+    # push-based data
+    indoor_temp_sensor = entry.data.get("indoor_temp_sensor")
 
     async_add_entities([
-        CarbonAwareThermostat(coordinator, idx) for idx, ent in enumerate(coordinator.data)
+        CarbonAwareThermostat(coordinator, indoor_temp_sensor, idx) for idx, ent in enumerate(coordinator.data)
     ])
 
 
 class CarbonAwareThermostat(CoordinatorEntity, ClimateEntity):
     """The Thermostat Entity."""
 
-    def __init__(self, coordinator, idx):
+    def __init__(self, coordinator, indoor_temp_sensor, idx):
         super().__init__(coordinator, context=idx)
+        self.indoor_temp_sensor = indoor_temp_sensor
         self.idx = idx
 
     @callback
@@ -39,13 +45,13 @@ class CarbonAwareThermostat(CoordinatorEntity, ClimateEntity):
         # Not sure if this is needed
         self.async_on_remove(
             async_track_state_change_event(
-                self.hass, [self._indoor_temp_entity], self._async_on_temp_change
+                self.hass, [self.indoor_temp_sensor], self._async_on_temp_change
             )
         )
 
         # Initial state fetch
         # Not sure if this is needed
-        if state := self.hass.states.get(self._indoor_temp_entity):
+        if state := self.hass.states.get(self.indoor_temp_sensor):
             self._update_internal_temp(state)
 
     def _update_internal_temp(self, state):
