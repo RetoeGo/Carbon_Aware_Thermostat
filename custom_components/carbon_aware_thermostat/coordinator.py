@@ -50,7 +50,7 @@ class CarbonAwareCoordinator(DataUpdateCoordinator):
                 # context not required if there is no need to limit
                 # data retrieved from API
                 listening_idx = set(self.async_contexts())
-                return await self.my_api.fetch_data(listening_idx)
+                return await self.api.fetch_data(listening_idx)
         except aiohttp.ClientResponseError as err:
             if err.status == 401:
                 raise ConfigEntryAuthFailed from err
