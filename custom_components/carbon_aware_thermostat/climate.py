@@ -3,8 +3,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.const import ATTR_TEMPERATURE, CONF_NAME, STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.core import callback
-from ..const import DOMAIN, LOGGER
-from ..coordinator import CarbonAwareCoordinator
+from .const import DOMAIN, LOGGER
+from .coordinator import CarbonAwareCoordinator
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
