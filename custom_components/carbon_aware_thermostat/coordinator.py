@@ -8,6 +8,8 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
+import aiohttp
+import asyncio
 
 from .const import DOMAIN, LOGGER
 
@@ -49,9 +51,11 @@ class CarbonAwareCoordinator(DataUpdateCoordinator):
                 # data retrieved from API
                 listening_idx = set(self.async_contexts())
                 return await self.my_api.fetch_data(listening_idx)
-        except ApiAuthError as err:
-          raise ConfigEntryAuthFailed from err
-        except ApiError as err:
+        except aiohttp.ClientResponseError as err:
+            if err.status == 401:
+                raise ConfigEntryAuthFailed from err
             raise UpdateFailed(f"Error communicating with API: {err}")
-        except ApiRateLimited as err:
+        except (asyncio.TimeoutError, aiohttp.ClientError) as err:
+            raise UpdateFailed(f"Error communicating with API: {err}")
+        except Exception as err:
             raise UpdateFailed(retry_after=60)
