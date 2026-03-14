@@ -6,7 +6,7 @@ from mpc import *
 
 @dataclass
 class Thermostat:
-    power: int
+    power: float
 
 class VirtualRoom:
     """Virtual Room Entity"""
@@ -52,15 +52,17 @@ class VirtualRoom:
 
 
 def main():
+    dt = 600
+    time = np.arange(0, 60*60*24+1, dt)
+    N = 20
+    
     T0 = 15         # initial room temp (clesius)
-    T_out = 10      # outside temp (celsius)
+    T_out = 5 + 15 * np.sin(np.pi / (60*60*24) * time)
+    T_out = np.concatenate((T_out, T_out[:N]))
 
     h = 3           # room height
     w = 6           # room width
     l = 10          # room length
-
-    dt = 60
-    time = np.arange(0, 3601, dt)
 
     thermo = Thermostat(1000)
     myroom = VirtualRoom(T0, h*l*w, h*l + h*w, thermo)
@@ -72,12 +74,12 @@ def main():
 
     rls_model = myroom.generate_rls(dt)
 
-    for t in time:
-        input_power = mpc_control(rls_model, 20, myroom.temp, 21, T_out)[0]
+    for i, t in enumerate(time):
+        input_power = mpc_control(rls_model, N, myroom.temp, 21, T_out[i:i+N])
         thermo.power = input_power
         print(f'input at time {t}: {input_power} W')
         
-        Qt, Qc, Qr, T = myroom.update_temp(dt, T_out, window_percent=0.3, show_data=True)
+        Qt, Qc, Qr, T = myroom.update_temp(dt, T_out[i], window_percent=0.3, show_data=True)
         room_temp.append(T)
         Q_thermo.append(Qt)
         Q_conduc.append(Qc)
@@ -85,16 +87,17 @@ def main():
     
     fig, ax = plt.subplots(2,1)
 
-    ax[0].plot(time/60, room_temp, label='Room temperature (C)')
+    ax[0].plot(time/3600, room_temp, label='Room temperature (C)')
+    ax[0].axhline(21, linestyle='dotted', color='red', label='target temp (C)')
+    ax[0].plot(time/3600, T_out[:-N], label='Outside temperature (C)')
     
-    ax[1].plot(time/60, np.array(Q_thermo)/dt, label='Heating (W)')
-    ax[1].plot(time/60, np.array(Q_conduc)/dt, label='Heat loss conduction (W)')
-    ax[1].plot(time/60, np.array(Q_rad)/dt, label='Heat loss radiation (W)')
+    ax[1].plot(time/3600, np.array(Q_thermo)/dt, label='Heating (W)')
+    ax[1].plot(time/3600, np.array(Q_conduc)/dt, label='Heat loss conduction (W)')
+    ax[1].plot(time/3600, np.array(Q_rad)/dt, label='Heat loss radiation (W)')
 
     ax[0].set_ylim(0, 30)
 
-    ax[0].set_xlabel('Time (min)')
-    ax[1].set_xlabel('Time (min)')
+    ax[1].set_xlabel('Time (hours)')
 
     ax[0].legend()
     ax[1].legend()

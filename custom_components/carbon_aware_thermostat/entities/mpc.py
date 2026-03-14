@@ -11,7 +11,7 @@ class RLS:
 
 def mpc_control(RLS_model, N, T0, T_target, T_out):
     weight_input = 0.1
-    weight_tracking = 1000
+    weight_tracking = 10
     
     cost = 0.0
     constraints = []
@@ -28,12 +28,13 @@ def mpc_control(RLS_model, N, T0, T_target, T_out):
     # to add constraint:    constraints += [expression]
     # to add cost:          cost += value
 
-    for k in range(N):   
+    for k in range(N):
+        T_outk = T_out[k]
         T_k = T[:,k]
         T_k1 = T[:,k+1]
         u_k = u[:,k]
 
-        constraints += [T_k1 == a*T_k + b*u_k + c*T_out + d]
+        constraints += [T_k1 == a*T_k + b*u_k + c*T_outk + d]
 
         cost += weight_input * u_k
         cost += weight_tracking * cp.abs(T_k1 - T_target)
@@ -42,11 +43,11 @@ def mpc_control(RLS_model, N, T0, T_target, T_out):
     constraints += [T[:,0] == T0]
 
     # input constraints
-    constraints += [u >= 100]
-    constraints += [u <= 5000]
+    constraints += [u >= 0]
+    constraints += [u <= 1500]
 
     problem = cp.Problem(cp.Minimize(cost), constraints)
-    problem.solve(solver=cp.OSQP)
+    problem.solve(solver=cp.CLARABEL, **{"verbose": False})
 
     # return next input
-    return u[:, 0].value
+    return u[0, 0].value
