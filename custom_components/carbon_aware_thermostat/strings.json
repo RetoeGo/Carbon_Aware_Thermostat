@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Setup Carbon Aware Thermostat",
+        "description": "Configure your API and select the sensor to monitor grid carbon intensity.",
+        "data": {
+          "api_key": "Electricity Maps API Key",
+          "carbon_sensor": "Carbon Intensity Sensor",
+          "co2_threshold": "Eco Mode Threshold (gCO2/kWh)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key provided"
+    }
+  }
+}
