@@ -54,11 +54,18 @@ class VirtualRoom:
 def main():
     dt = 600
     time = np.arange(0, 60*60*24+1, dt)
-    N = 20
+    N = 30
     
     T0 = 15         # initial room temp (clesius)
-    T_out = 5 + 15 * np.sin(np.pi / (60*60*24) * time)
+    T_out = 5 + 10 * np.sin(np.pi / (60*60*24) * time)
     T_out = np.concatenate((T_out, T_out[:N]))
+
+    # carbon_intensity = np.ones(len(time)) * 1
+    # sun = len(time)//3
+    # carbon_intensity[sun:sun*2] -= 7 * (np.sin(np.pi / (60*60*24) * time[sun:sun*2]) - np.sin(np.pi / (60*60*24) * time[sun]))
+    # carbon_intensity = np.concatenate((carbon_intensity, carbon_intensity[:N]))
+    
+    carbon_intensity = np.array(42*[1] + 12*[0.5] + 48*[0.1] + 12*[0.5] + (30+N+1)*[1])
 
     h = 3           # room height
     w = 6           # room width
@@ -75,7 +82,7 @@ def main():
     rls_model = myroom.generate_rls(dt)
 
     for i, t in enumerate(time):
-        input_power = mpc_control(rls_model, N, myroom.temp, 21, T_out[i:i+N])
+        input_power = mpc_control(rls_model, N, myroom.temp, 21, T_out[i:i+N], carbon_intensity[i:i+N])
         thermo.power = input_power
         print(f'input at time {t}: {input_power} W')
         
@@ -94,6 +101,7 @@ def main():
     ax[1].plot(time/3600, np.array(Q_thermo)/dt, label='Heating (W)')
     ax[1].plot(time/3600, np.array(Q_conduc)/dt, label='Heat loss conduction (W)')
     ax[1].plot(time/3600, np.array(Q_rad)/dt, label='Heat loss radiation (W)')
+    ax[1].plot(time/3600, 1000*carbon_intensity[:-N], label='carbon intensity (*1000)')
 
     ax[0].set_ylim(0, 30)
 

@@ -9,9 +9,9 @@ class RLS:
     c: float
     d: float
 
-def mpc_control(RLS_model, N, T0, T_target, T_out):
-    weight_input = 0.1
-    weight_tracking = 10
+def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity):
+    weight_input = 0.5
+    weight_tracking = 5
     
     cost = 0.0
     constraints = []
@@ -30,13 +30,14 @@ def mpc_control(RLS_model, N, T0, T_target, T_out):
 
     for k in range(N):
         T_outk = T_out[k]
+        C_int = carbon_intensity[k]
         T_k = T[:,k]
         T_k1 = T[:,k+1]
         u_k = u[:,k]
 
         constraints += [T_k1 == a*T_k + b*u_k + c*T_outk + d]
 
-        cost += weight_input * u_k
+        cost += weight_input * u_k * C_int
         cost += weight_tracking * cp.abs(T_k1 - T_target)
 
     # initial temperature    
