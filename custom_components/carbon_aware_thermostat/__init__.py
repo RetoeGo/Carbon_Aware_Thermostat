@@ -10,14 +10,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # carbon_sensor = entry.data.get("carbon_sensor")
     # weather_entity = entry.data.get("weather_entity")
-    api = entry.data.get("api")
+    # api = entry.data.get("api")
 
     # Initialize and fetch first data
-    coord = CarbonAwareCoordinator(hass, entry, api)
-    await coord.async_config_entry_first_refresh()
+    # coord = CarbonAwareCoordinator(hass, entry, api)
+    # await coord.async_config_entry_first_refresh()
 
     # Store coordinator for platforms (climate.py) to access
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
+    # hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
+
+    # Store the entry data in a global domain key for the platforms to access
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = entry.data
 
     # Forward the setup to the climate platform
     await hass.config_entries.async_forward_entry_setups(entry, ["climate"])
