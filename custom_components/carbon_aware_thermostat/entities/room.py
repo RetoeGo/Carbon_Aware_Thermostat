@@ -91,6 +91,8 @@ def main():
         Q_thermo.append(Qt)
         Q_conduc.append(Qc)
         Q_rad.append(Qr)
+
+        rls_model.update(myroom.temp, input_power, T_out[i], T)
     
     fig, ax = plt.subplots(2,1)
 
