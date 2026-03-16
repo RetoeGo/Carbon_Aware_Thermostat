@@ -1,8 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from dataclasses import dataclass
 
-@dataclass
 class RLS:
     def __init__(self, a, b, c, d, lam=0.99):
         self.theta = np.array([[a], [b], [c], [d]]) #init matrix
@@ -10,8 +8,7 @@ class RLS:
         self.lam = lam # forgetting factor
     
     def update(self, T_k, u_k, T_outk, T_k1):
-        # ek = 
-        phi = np.array([[T_k], [u_k], [T_outk], [T_k1]])
+        phi = np.array([[T_k], [u_k], [T_outk], [1]])
         Tk1 = np.array([[T_k1]])
         #error
         e_k = Tk1 - phi.T @ self.theta
