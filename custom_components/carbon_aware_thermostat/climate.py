@@ -5,6 +5,8 @@ from homeassistant.const import ATTR_TEMPERATURE, CONF_NAME, STATE_UNKNOWN, STAT
 from homeassistant.core import callback
 from .const import DOMAIN, LOGGER
 from .coordinator import CarbonAwareCoordinator
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 
 # async def async_setup_entry(hass, entry, async_add_entities):
@@ -23,7 +25,7 @@ from .coordinator import CarbonAwareCoordinator
     # ])
 
 
-class CarbonAwareThermostat(CoordinatorEntity, ClimateEntity):
+class CarbonAwareThermostat(ClimateEntity):
     """The Thermostat Entity."""
 
     def __init__(self, hass, config):
@@ -31,9 +33,30 @@ class CarbonAwareThermostat(CoordinatorEntity, ClimateEntity):
         # self.indoor_temp_sensor = indoor_temp_sensor
         # self.idx = idx
         self.hass = hass
+        # Ensure Home Assistant climate base class finds a temperature unit
+        # Use the HA instance temperature unit so the entity reports correctly.
+        try:
+            self._attr_temperature_unit = hass.config.units.temperature_unit
+        except Exception:
+            # Fallback to a sensible default if hass is not fully available yet
+            from homeassistant.const import UnitOfTemperature
+
+            self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         self._carbon_sensor = config["carbon_sensor"]
-        self._target_climate = config["target_climate"]
-        self._weather_entity = config.get("weather_entity")
+        # Minimal HVAC attributes so HA can query capabilities without error
+        # Provide sensible defaults; callers can override or expand later.
+        self._attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+        # Current HVAC mode (single value). Set a safe default.
+        self._attr_hvac_mode = HVACMode.OFF
+        self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+        # Reasonable temperature range and resolution
+        self._attr_min_temp = 5.0
+        self._attr_max_temp = 30.0
+        self._attr_target_temperature_step = 0.5
+        # Friendly name for the entity; avoids 'unnamed_device' in logs/UI
+        self._attr_name = config.get(CONF_NAME, "Carbon Aware Thermostat")
+        #self._target_climate = config["target_climate"]
+        #self._weather_entity = config.get("weather_entity")
 
     # @callback
     # def _handle_coordinator_update(self) -> None:
@@ -109,17 +132,27 @@ class CarbonAwareThermostat(CoordinatorEntity, ClimateEntity):
             return
 
         intensity = float(new_state.state)
-        forecast_temp = await self._get_forecast_temp()
+        #forecast_temp = await self._get_forecast_temp()
 
         # Get state of the real underlying thermostat
-        real_thermostat = self.hass.states.get(self._target_climate)
-        current_target = real_thermostat.attributes.get(ATTR_TEMPERATURE)
+        #real_thermostat = self.hass.states.get(self._target_climate)
+        #current_target = real_thermostat.attributes.get(ATTR_TEMPERATURE)
 
         # apply algorithm
         new_target = 20
+        LOGGER.info("Carbon intensity: %s, setting target to %s", intensity, new_target)
 
         # Send command to the real hardware
-        await self.hass.services.async_call("climate", "set_temperature", {
-            "entity_id": self._target_climate,
-            "temperature": new_target
-        })
+        # await self.hass.services.async_call("climate", "set_temperature", {
+        #     "entity_id": self._target_climate,
+        #     "temperature": new_target
+        # })
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+    """Set up the climate platform for a config entry."""
+    # The integration stores the raw entry data under hass.data[DOMAIN][entry.entry_id]
+    config = hass.data.get(DOMAIN, {}).get(entry.entry_id, entry.data)
+
+    # Create one thermostat entity per config entry. If you expect multiple
+    # thermostats per entry, adapt this to iterate over a list in config.
+    entity = CarbonAwareThermostat(hass, config)
+    async_add_entities([entity], update_before_add=False)

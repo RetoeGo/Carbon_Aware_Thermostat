@@ -32,10 +32,10 @@ class CarbonAwareThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 selector.EntitySelectorConfig(domain="weather")
             ),
 
-            # Target Hardware
-            vol.Required("target_climate"): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="climate")
-            ),
+            # # Target Hardware
+            # vol.Required("target_climate"): selector.EntitySelector(
+            #     selector.EntitySelectorConfig(domain="climate")
+            # ),
 
             # Logic Parameters
             vol.Required("co2_threshold", default=300): vol.Coerce(int),
