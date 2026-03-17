@@ -4,7 +4,6 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.const import ATTR_TEMPERATURE, CONF_NAME, STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.core import callback
 from .const import DOMAIN, LOGGER
-from .coordinator import CarbonAwareCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -55,8 +54,8 @@ class CarbonAwareThermostat(ClimateEntity):
         self._attr_target_temperature_step = 0.5
         # Friendly name for the entity; avoids 'unnamed_device' in logs/UI
         self._attr_name = config.get(CONF_NAME, "Carbon Aware Thermostat")
-        #self._target_climate = config["target_climate"]
-        #self._weather_entity = config.get("weather_entity")
+        self._target_climate = config.get("target_climate")
+        self._weather_entity = config.get("weather_entity")
 
     # @callback
     # def _handle_coordinator_update(self) -> None:
@@ -98,7 +97,7 @@ class CarbonAwareThermostat(ClimateEntity):
     async def async_added_to_hass(self):
         """Subscribe to carbon sensor changes."""
         self.async_on_remove(
-            async_track_state_change_event(self.hass, self._carbon_sensor, self._process_logic)
+            async_track_state_change_event(self.hass, [self._carbon_sensor], self._process_logic)
         )
 
     async def _get_forecast_temp(self):
@@ -108,19 +107,20 @@ class CarbonAwareThermostat(ClimateEntity):
 
         try:
             # Modern way to fetch forecasts in HA
+            # entity_id must be passed as a list
             forecast_data = await self.hass.services.async_call(
                 "weather", "get_forecasts",
-                {"entity_id": self._weather_entity, "type": "hourly"},
+                {"entity_id": [self._weather_entity], "type": "hourly"},
                 blocking=True, return_response=True
             )
 
-            return forecast_data[self._weather_entity]["forecast"]
-
-            # Extract the 3rd hour from the forecast list
-            # hourly_forecasts = forecast_data[self._weather_entity]["forecast"]
-            # if len(hourly_forecasts) >= 3:
-            #     return hourly_forecasts[2]["temperature"]
-            # return None
+            if forecast_data and self._weather_entity in forecast_data:
+                hourly_forecasts = forecast_data[self._weather_entity].get("forecast", [])
+                # Extract the 3rd hour from the forecast list
+                if len(hourly_forecasts) >= 3:
+                    return hourly_forecasts[2].get("temperature")
+            
+            return None
         except Exception as e:
             LOGGER.error("Failed to fetch weather forecast: %s", e)
             return None
@@ -132,7 +132,7 @@ class CarbonAwareThermostat(ClimateEntity):
             return
 
         intensity = float(new_state.state)
-        #forecast_temp = await self._get_forecast_temp()
+        forecast_temp = await self._get_forecast_temp()
 
         # Get state of the real underlying thermostat
         #real_thermostat = self.hass.states.get(self._target_climate)
@@ -140,7 +140,7 @@ class CarbonAwareThermostat(ClimateEntity):
 
         # apply algorithm
         new_target = 20
-        LOGGER.info("Carbon intensity: %s, setting target to %s", intensity, new_target)
+        LOGGER.critical("Carbon intensity: %s, weather forecast: %s, setting target to %s", intensity, forecast_temp, new_target)
 
         # Send command to the real hardware
         # await self.hass.services.async_call("climate", "set_temperature", {

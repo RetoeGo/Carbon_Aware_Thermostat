@@ -1,13 +1,12 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import CarbonAwareCoordinator
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the carbon-aware thermostat from a config entry."""
-
     # carbon_sensor = entry.data.get("carbon_sensor")
     # weather_entity = entry.data.get("weather_entity")
     # api = entry.data.get("api")
