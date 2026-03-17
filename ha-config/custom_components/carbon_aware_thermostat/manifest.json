@@ -1,0 +1,13 @@
+{
+  "domain": "carbon_aware_thermostat",
+  "name": "Carbon Aware Thermostat",
+  "version": "0.3.1",
+  "config_flow": true,
+  "requirements": [
+    "numpy>=1.26.0"
+  ],
+  "codeowners": [
+    "@RetoeGo"
+  ],
+  "iot_class": "local_polling"
+}

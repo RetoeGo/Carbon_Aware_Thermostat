@@ -1,5 +1,5 @@
 # Home Assistant runtime
-ha-config/
+#ha-config/
 
 # Python
 __pycache__/
