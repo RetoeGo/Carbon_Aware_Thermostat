@@ -1,0 +1,87 @@
+# Mappings for cleaning up the data from NED API
+MAPPINGS = {
+    'activity': {
+        1: 'Providing',
+        2: 'Consuming',
+        3: 'Import',
+        4: 'Export',
+        5: 'Storage in',
+        6: 'Storage out',
+        7: 'Storage'
+    },
+    'classification': {
+        1: 'Forecast',
+        2: 'Current'
+    },
+    'granularity': {
+        3: '10 minutes',
+        4: '15 minutes',
+        5: 'Hour',
+        6: 'Day',
+        7: 'Month',
+        8: 'Year'
+    },
+    'granularitytimezone': {
+        0: 'UTC',
+        1: 'CET'
+    },
+    'point': {
+        0: 'Nederland',
+        1: 'Groningen',
+        2: 'Friesland',
+        3: 'Drenthe',
+        4: 'Overijssel',
+        5: 'Flevoland',
+        6: 'Gelderland',
+        7: 'Utrecht',
+        8: 'Noord-Holland',
+        9: 'Zuid-Holland',
+        10: 'Zeeland',
+        11: 'Noord-Brabant',
+        12: 'Limburg',
+        14: 'Offshore',
+        28: 'Windpark Luchterduinen',
+        29: 'Windpark Princes Amalia',
+        30: 'Windpark Egmond aan Zee',
+        31: 'Windpark Gemini',
+        33: 'Windpark Borselle I&II',
+        34: 'Windpark Borselle III&IV',
+        35: 'Windpark Hollandse Kust Zuid',
+        36: 'Windpark Hollandse Kust Noord'
+    },
+    'type': {
+        0: 'All',
+        1: 'Wind',
+        2: 'Solar',
+        3: 'Biogas',
+        4: 'HeatPump',
+        8: 'Cofiring',
+        9: 'Geothermal',
+        10: 'Other',
+        11: 'Waste',
+        12: 'BioOil',
+        13: 'Biomass',
+        14: 'Wood',
+        17: 'WindOffshore',
+        18: 'FossilGasPower',
+        19: 'FossilHardCoal',
+        20: 'Nuclear',
+        21: 'WastePower',
+        22: 'WindOffshoreB',
+        23: 'NaturalGas',
+        24: 'Biomethane',
+        25: 'BiomassPower',
+        26: 'OtherPower',
+        27: 'ElectricityMix',
+        28: 'GasMix',
+        31: 'GasDistribution',
+        35: 'WKK Total',
+        50: 'SolarThermal',
+        51: 'WindOffshoreC',
+        53: 'IndustrialConsumersGasCombination',
+        54: 'IndustrialConsumersPowerGasCombination',
+        55: 'LocalDistributionCompaniesCombination',
+        56: 'AllConsumingGas',
+        59: 'Electricityload'
+    }
+}

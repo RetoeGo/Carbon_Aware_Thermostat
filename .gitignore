@@ -7,3 +7,10 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Environment variables
+.env
+
+# JetBrains IDE
+.idea/
+*.iml
