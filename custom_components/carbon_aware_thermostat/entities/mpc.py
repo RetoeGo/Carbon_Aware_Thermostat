@@ -58,8 +58,8 @@ def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, max_power, 
         # model dynamics
         constraints += [T_k1 == a*T_k + b*heat_stage*u_k + c*T_outk + d]
         
-        # temp cant be more then 2.5 degrees below target
-        constraints += [T_targetk - T_k1 <= 2.5]
+        # temp cant be more then 3 degrees below target
+        constraints += [T_targetk - T_k1 <= 3]
 
         cost += weight_input * u_k * heat_stage * C_int
         cost += weight_tracking * cp.abs(T_k1 - T_targetk)
@@ -73,7 +73,7 @@ def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, max_power, 
 
 
     problem = cp.Problem(cp.Minimize(cost), constraints)
-    problem.solve(solver=cp.GLPK_MI)
+    problem.solve(solver=cp.GLPK_MI, **{'tm_lim': 1000})
 
     # return next input
-    return u[0, 0].value * heat_stage
+    return u[0, 0].value * heat_stage if not (u[0, 0].value is None) else 0

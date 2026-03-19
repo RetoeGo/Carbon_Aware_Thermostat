@@ -5,6 +5,21 @@ from mpc import *
 import csv
 import time as tm
 
+class Progress:
+    def __init__(self, goal, step):
+        self.state = 0
+        self.goal = goal
+        self.step = step
+        print(f"Progress: {self.state}/{self.goal}")
+    
+    def update(self):
+        self.state += self.step
+        print('\033[1A', end='\x1b[2K') # resets line
+        if self.state >= self.goal:
+            print("Done!")
+        else:
+            print(f"Progress: {self.state}/{self.goal}")
+
 
 @dataclass
 class Thermostat:
@@ -93,12 +108,13 @@ def main():
     # rls_model = myroom.generate_rls(dt)
     rls_model = RLS(0,0,0,0, lam=0.9)
 
+    progress = Progress(len(time), 1)
+
     for i, t in enumerate(time):
         T_k = myroom.temp
         if case == "MPC":
             if not rls_model.init_good:
                 input_power = bang_bang_control(T_k, T_target[i], max_power)
-                print("Use bangbang to create RLS")
             else:
                 input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], max_power, power_options)
         if case == "bang":
@@ -106,6 +122,7 @@ def main():
 
         thermo.power = input_power
         # print(f'input at time {t}: {input_power} W')
+        progress.update()
         
         Qt, Qc, Qr, T_k1 = myroom.update_temp(dt, T_out[i], window_percent=0.3, show_data=True)
         room_temp.append(T_k1)
