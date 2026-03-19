@@ -65,10 +65,8 @@ def main():
     T_out = 5 + 10 * np.sin(np.pi / (60*60*24) * time)
     T_out = np.concatenate((T_out, T_out[:N]))
 
-
     T_target = np.array(n*6*[15] + n*3*[21] + n*5*[18] + n*8*[21] + n*2*[15])
     T_target = np.concatenate((T_target, T_target[:N+1]))
- 
     
     carbon_intensity = np.array(n*7*[1] + n*2*[0.5] + n*8*[0.1] + n*2*[0.5] + (n*5+N+1)*[1])
 
@@ -86,7 +84,6 @@ def main():
     Q_conduc = []
     Q_rad = []
     RLS_errors = []
-
     csv_rows = []
 
     rls_model = myroom.generate_rls(dt)
