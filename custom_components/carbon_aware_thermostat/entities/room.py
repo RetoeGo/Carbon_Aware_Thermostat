@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from mpc import *
+import csv
 import time as tm
 
 
@@ -64,14 +65,10 @@ def main():
     T_out = 5 + 10 * np.sin(np.pi / (60*60*24) * time)
     T_out = np.concatenate((T_out, T_out[:N]))
 
+
     T_target = np.array(n*6*[15] + n*3*[21] + n*5*[18] + n*8*[21] + n*2*[15])
     T_target = np.concatenate((T_target, T_target[:N+1]))
-
-    # carbon_intensity = np.ones(len(time)) * 1
-    # sun = len(time)//3
-    # carbon_intensity[sun:sun*2] -= 7 * (np.sin(np.pi / (60*60*24) * time[sun:sun*2]) - np.sin(np.pi / (60*60*24) * time[sun]))
-    # carbon_intensity = np.concatenate((carbon_intensity, carbon_intensity[:N]))
-    
+ 
     
     carbon_intensity = np.array(n*7*[1] + n*2*[0.5] + n*8*[0.1] + n*2*[0.5] + (n*5+N+1)*[1])
 
@@ -90,11 +87,15 @@ def main():
     Q_rad = []
     RLS_errors = []
 
+    csv_rows = []
+
     rls_model = myroom.generate_rls(dt)
 
     for i, t in enumerate(time):
         T_k = myroom.temp
         input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], heat_stages)
+        #input_power = bang_bang(myroom.temp, 21, T_out[i:i+N], carbon_intensity[i:i+N])
+
         thermo.power = input_power
         print(f'input at time {t}: {input_power} W')
         
@@ -104,13 +105,39 @@ def main():
         Q_conduc.append(Qc)
         Q_rad.append(Qr)
 
-        # print(f'myroom.temp = {T_k}, T = {T_k1}')
+        csv_rows.append([
+            t/3600,
+            T_target[i],
+            T_out[i],
+            carbon_intensity[i],
+            input_power,
+            T_k1,
+            Qt,
+            Qc,
+            Qr
+        ])
 
         e_k = rls_model.update(T_k, input_power, T_out[i], T_k1, show_data=True)
         RLS_errors.append(e_k)
     
     end_time = tm.time()
-    print(f'Total time: {round(end_time - start_time,3)} s')
+    print(f'Total time: {round(end_time - start_time, 3)} s')
+
+    with open("room_data.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "time_h",
+            "preferred_room_temperature_C",
+            "outside_temperature_C",
+            "co2_consumption_electricity_net",
+            "heating_wattage_W",
+            "room_temprature",
+            "Q_thermo",
+            "Q_conduc",
+            "Q_rad"
+        ])
+        writer.writerows(csv_rows)
+
 
     fig, ax = plt.subplots(1,3, figsize=(12,4))
 
