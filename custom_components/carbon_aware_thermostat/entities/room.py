@@ -90,8 +90,8 @@ def main():
 
     for i, t in enumerate(time):
         T_k = myroom.temp
-        input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], heat_stages)
-        #input_power = bang_bang(myroom.temp, 21, T_out[i:i+N], carbon_intensity[i:i+N])
+        # input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], heat_stages)
+        input_power = bang_bang_control(T_k, T_target[i], 2*heat_stages)
 
         thermo.power = input_power
         print(f'input at time {t}: {input_power} W')

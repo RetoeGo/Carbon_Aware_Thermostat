@@ -20,6 +20,11 @@ class RLS:
         if show_data:
             return e_k[0]
 
+def bang_bang_control(T_k, T_target, max_power):
+    if T_target - T_k > 0.5:
+        return max_power
+    return 0
+
 def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, heat_stage):
     weight_input = 1.5
     weight_tracking = 100
