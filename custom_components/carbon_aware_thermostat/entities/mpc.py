@@ -2,10 +2,11 @@ import cvxpy as cp
 import numpy as np
 
 class RLS:
-    def __init__(self, a, b, c, d, lam=0.99):
+    def __init__(self, a, b, c, d, lam=0.99, init_good=False):
         self.theta = np.array([[a], [b], [c], [d]]) #init matrix
-        self.P = 100 * np.eye(4) # I matrix with 100 on each (i,i)
+        self.P = np.eye(4) # I matrix
         self.lam = lam # forgetting factor
+        self.init_good = init_good
     
     def update(self, T_k, u_k, T_outk, T_k1, show_data=False):
         phi = np.array([[T_k], [u_k], [T_outk], [1]])
@@ -17,6 +18,9 @@ class RLS:
         #updates
         self.theta = self.theta + K @ e_k
         self.P = (self.P - K @ phi.T @self.P) / self.lam
+        if not self.init_good and not(0 in self.theta):
+            self.init_good = True
+
         if show_data:
             return e_k[0]
 
@@ -25,10 +29,9 @@ def bang_bang_control(T_k, T_target, max_power):
         return max_power
     return 0
 
-def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, heat_stage):
+def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, max_power, power_options):
     weight_input = 1.5
     weight_tracking = 100
-    weight_smoothing = 0.0001
     
     cost = 0.0
     constraints = []
@@ -38,6 +41,8 @@ def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, heat_stage)
     u = cp.Variable((1, N), integer=True)
 
     a, b, c, d = RLS_model.theta[:,0]
+
+    heat_stage = max_power // power_options
 
     # to add constraint:    constraints += [expression]
     # to add cost:          cost += value
@@ -61,7 +66,7 @@ def mpc_control(RLS_model, N, T0, T_target, T_out, carbon_intensity, heat_stage)
 
     # input constraints
     constraints += [u >= 0]
-    constraints += [u <= 2]
+    constraints += [u <= power_options]
 
 
     problem = cp.Problem(cp.Minimize(cost), constraints)

@@ -50,10 +50,13 @@ class VirtualRoom:
         a = 1 - c
         d = 0
 
-        return RLS(a,b,c,d)
+        return RLS(a,b,c,d, lam=0.9, init_good=True)
 
 
 def main():
+    # case = "bang"
+    case = "MPC"
+    
     start_time = tm.time()
     
     dt = 600
@@ -74,7 +77,8 @@ def main():
     w = 6           # room width
     l = 10          # room length
 
-    heat_stages = 500
+    power_options = 5
+    max_power = 1000
 
     thermo = Thermostat(0)
     myroom = VirtualRoom(T0, h*l*w, h*l + h*w, thermo)
@@ -86,15 +90,22 @@ def main():
     RLS_errors = []
     csv_rows = []
 
-    rls_model = myroom.generate_rls(dt)
+    # rls_model = myroom.generate_rls(dt)
+    rls_model = RLS(0,0,0,0, lam=0.9)
 
     for i, t in enumerate(time):
         T_k = myroom.temp
-        # input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], heat_stages)
-        input_power = bang_bang_control(T_k, T_target[i], 2*heat_stages)
+        if case == "MPC":
+            if not rls_model.init_good:
+                input_power = bang_bang_control(T_k, T_target[i], max_power)
+                print("Use bangbang to create RLS")
+            else:
+                input_power = mpc_control(rls_model, N, T_k, T_target[i:i+N], T_out[i:i+N], carbon_intensity[i:i+N], max_power, power_options)
+        if case == "bang":
+            input_power = bang_bang_control(T_k, T_target[i], max_power)
 
         thermo.power = input_power
-        print(f'input at time {t}: {input_power} W')
+        # print(f'input at time {t}: {input_power} W')
         
         Qt, Qc, Qr, T_k1 = myroom.update_temp(dt, T_out[i], window_percent=0.3, show_data=True)
         room_temp.append(T_k1)
@@ -136,28 +147,25 @@ def main():
         writer.writerows(csv_rows)
 
 
-    fig, ax = plt.subplots(1,3, figsize=(12,4))
+    fig, ax = plt.subplots(1,2, figsize=(10,4))
 
     ax[0].plot(time/3600, room_temp, label='Room temperature (C)')
     ax[0].plot(time/3600, T_target[:-N], linestyle='dotted', color='red', label='target temp (C)')
     ax[0].plot(time/3600, T_out[:-N], label='Outside temperature (C)')
-    ax[0].plot(time/3600, 25*carbon_intensity[:-N], label='carbon intensity (*25)')
+    # ax[0].plot(time/3600, 25*carbon_intensity[:-N], label='carbon intensity (*25)')
     
     ax[1].plot(time/3600, np.array(Q_thermo)/dt, label='Heating (W)')
     ax[1].plot(time/3600, np.array(Q_conduc)/dt, label='Heat loss conduction (W)')
     ax[1].plot(time/3600, np.array(Q_rad)/dt, label='Heat loss radiation (W)')
     ax[1].plot(time/3600, 1000*carbon_intensity[:-N], label='carbon intensity (*1000)')
 
-    ax[2].plot(time/3600, RLS_errors)
-
     ax[0].set_ylim(0, 30)
 
     ax[0].set_xlabel('Time (hours)')
     ax[1].set_xlabel('Time (hours)')
-    ax[2].set_xlabel('Time (hours)')
 
     ax[0].legend()
-    # ax[1].legend()
+    ax[1].legend()
 
     plt.show()
 
