@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from mpc import *
-
+import csv
 
 @dataclass
 class Thermostat:
@@ -60,6 +60,7 @@ def main():
     T_out = 5 + 10 * np.sin(np.pi / (60*60*24) * time)
     T_out = np.concatenate((T_out, T_out[:N]))
 
+    preferred_temp = 21 # preferred room temprature
     # carbon_intensity = np.ones(len(time)) * 1
     # sun = len(time)//3
     # carbon_intensity[sun:sun*2] -= 7 * (np.sin(np.pi / (60*60*24) * time[sun:sun*2]) - np.sin(np.pi / (60*60*24) * time[sun]))
@@ -79,10 +80,13 @@ def main():
     Q_conduc = []
     Q_rad = []
 
+    csv_rows = []
+
     rls_model = myroom.generate_rls(dt)
 
     for i, t in enumerate(time):
         input_power = mpc_control(rls_model, N, myroom.temp, 21, T_out[i:i+N], carbon_intensity[i:i+N])
+        #input_power = bang_bang(myroom.temp, 21, T_out[i:i+N], carbon_intensity[i:i+N])
         thermo.power = input_power
         print(f'input at time {t}: {input_power} W')
         
@@ -92,7 +96,34 @@ def main():
         Q_conduc.append(Qc)
         Q_rad.append(Qr)
 
+        csv_rows.append([
+            t/3600,
+            preferred_temp,
+            T_out[i],
+            carbon_intensity[i],
+            input_power,
+            T,
+            Qt,
+            Qc,
+            Qr
+        ])
+
         rls_model.update(myroom.temp, input_power, T_out[i], T)
+    
+    with open("room_data.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "time_h",
+            "preferred_room_temperature_C",
+            "outside_temperature_C",
+            "co2_consumption_electricity_net",
+            "heating_wattage_W",
+            "room_temprature",
+            "Q_thermo",
+            "Q_conduc",
+            "Q_rad"
+        ])
+        writer.writerows(csv_rows)
     
     fig, ax = plt.subplots(2,1)
 
