@@ -77,7 +77,7 @@ def main():
     w = 6           # room width
     l = 10          # room length
 
-    power_options = 5
+    power_options = 2
     max_power = 1000
 
     thermo = Thermostat(0)
