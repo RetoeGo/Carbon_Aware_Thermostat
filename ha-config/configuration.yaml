@@ -1,0 +1,36 @@
+default_config:
+
+# --- Fake test setup ---
+
+input_number:
+  fake_temperature:
+    name: Fake Room Temperature
+    min: 10
+    max: 30
+    step: 0.1
+
+input_boolean:
+  fake_heater:
+    name: Fake Heater
+
+template:
+  - sensor:
+      - name: "Fake Temperature"
+        state: "{{ states('input_number.fake_temperature') | float }}"
+        unit_of_measurement: "°C"
+
+climate:
+  - platform: generic_thermostat
+    name: Fake Thermostat
+    heater: input_boolean.fake_heater
+    target_sensor: sensor.fake_temperature
+
+
+logger:
+  default: warning
+  logs:
+    custom_components.carbon_aware_thermostat: debug
+    homeassistant.components.recorder: debug
+    homeassistant.config_entries: debug
+
+recorder:

@@ -1,0 +1,21 @@
+refresh:
+  name: Refresh
+  description: Force an immediate refresh of the Carbon Aware Thermostat data.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry ID to refresh a single Carbon Aware Thermostat instance.
+      example: abc123def456
+      selector:
+        text:
+
+clear_plot_history:
+  name: Clear plot history
+  description: Clear the in-memory plot history and start a fresh graph.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry ID to clear a single Carbon Aware Thermostat instance.
+      example: abc123def456
+      selector:
+        text:

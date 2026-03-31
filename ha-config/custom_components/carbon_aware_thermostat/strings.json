@@ -1,0 +1,32 @@
+{
+  "title": "Carbon Aware Thermostat",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Carbon Aware Thermostat",
+        "description": "Configure the real thermostat, weather source, and electricity grid carbon sensor. Control updates every 15 minutes with a 12-step MPC horizon (3 hours).",
+        "data": {
+          "name": "Name",
+          "climate_entity": "Thermostat",
+          "carbon_intensity_sensor": "Carbon intensity sensor",
+          "weather_entity": "Weather entity",
+          "target_mode": "Target mode",
+          "manual_target_temp": "Manual target temperature",
+          "eco_offset": "Eco offset",
+          "preferred_offset": "Preferred offset",
+          "aggressive_offset": "Aggressive offset",
+          "control_real_thermostat": "Control real thermostat"
+        }
+      }
+    },
+    "error": {}
+  },
+  "selector": {
+    "target_mode": {
+      "options": {
+        "manual": "Manual",
+        "preferred_warmer": "Preferred warmer"
+      }
+    }
+  }
+}
