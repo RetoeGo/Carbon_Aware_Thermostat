@@ -101,9 +101,6 @@ Standalone MPC + RLS implementation for experimentation outside Home Assistant.
 ### `testenv/api.py`
 Script for fetching carbon intensity and weather data and writing a CSV.
 
-### `testenv/api_results.csv`
-Saved API output data used by the test environment and notebooks.
-
 ## What is inside each `data-analysis` file
 
 ### `data-analysis/analysis-emils.ipynb`
@@ -184,5 +181,3 @@ For time-series results:
 1. Open the **History** tab in the left sidebar.
 2. Select the integration entities you want to inspect.
 3. View the graphs for temperatures, target values, and controller outputs.
-
-If the History tab is missing, make sure `default_config:` and `recorder:` are enabled in `ha-config/configuration.yaml`.
