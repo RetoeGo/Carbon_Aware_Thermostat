@@ -24,13 +24,12 @@ Carbon_Aware_Thermostat/
 │           └── strings.json
 ├── testenv/
 │   ├── api.py
-│   ├── api_results.csv
 │   ├── mpc.py
 │   └── room.py
 └── data-analysis/
-    ├── analysis-emils-2.ipynb
+    ├── analysis-emils.ipynb
     ├── analysis-pranav.ipynb
-    ├── significance_tests-2.ipynb
+    ├── significance_tests.ipynb
     ├── significance_tests_old.ipynb
     └── whole-pipeline.ipynb
 ```
@@ -107,13 +106,13 @@ Saved API output data used by the test environment and notebooks.
 
 ## What is inside each `data-analysis` file
 
-### `data-analysis/analysis-emils-2.ipynb`
+### `data-analysis/analysis-emils.ipynb`
 Notebook for exploratory analysis.
 
 ### `data-analysis/analysis-pranav.ipynb`
 Notebook for additional analysis experiments.
 
-### `data-analysis/significance_tests-2.ipynb`
+### `data-analysis/significance_tests.ipynb`
 Notebook for statistical significance testing.
 
 ### `data-analysis/significance_tests_old.ipynb`
