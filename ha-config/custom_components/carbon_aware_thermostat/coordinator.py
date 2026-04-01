@@ -272,36 +272,112 @@ class CarbonAwareCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return HEATING_LEVEL_PREFERRED
 
     def _resample_history(self, history: list[tuple[datetime, float]], step_minutes: int) -> list[tuple[datetime, float]]:
-        if not history:
+        sorted_history = sorted(history, key=lambda item: item[0])
+        if not sorted_history:
             return []
-        buckets: dict[datetime, list[float]] = {}
+
         step_seconds = step_minutes * 60
-        for ts, value in history:
+
+        def floor_step(ts: datetime) -> datetime:
             epoch = int(ts.timestamp())
-            bucket_epoch = epoch - (epoch % step_seconds)
-            bucket_ts = datetime.fromtimestamp(bucket_epoch, tz=timezone.utc)
-            buckets.setdefault(bucket_ts, []).append(float(value))
-        return sorted((ts, float(np.mean(values))) for ts, values in buckets.items())
+            floored = epoch - (epoch % step_seconds)
+            return datetime.fromtimestamp(floored, tz=timezone.utc)
+
+        buckets: dict[datetime, list[float]] = {}
+        for ts, value in sorted_history:
+            buckets.setdefault(floor_step(ts), []).append(float(value))
+
+        start_ts = floor_step(sorted_history[0][0])
+        end_ts = floor_step(sorted_history[-1][0])
+        current_ts = start_ts
+        resampled: list[tuple[datetime, float]] = []
+        last_value = float(sorted_history[0][1])
+        while current_ts <= end_ts:
+            bucket = buckets.get(current_ts)
+            if bucket:
+                last_value = float(np.mean(bucket))
+            resampled.append((current_ts, last_value))
+            current_ts += timedelta(minutes=step_minutes)
+        return resampled
 
     def _rolling_half_hour_forecast(self, series: list[tuple[datetime, float]], outside_temp_list: list[float], points: int, current: float) -> list[float]:
-        values = [value for _, value in series]
-        if not values:
+        if not series:
             return [current] * points
-        history_window = max(4, int(round(180 / max(self._step_minutes(), 1))))
+
+        step_minutes = self._step_minutes()
+        step = timedelta(minutes=step_minutes)
+        values = np.array([float(value) for _, value in series], dtype=float)
+        timestamps = [ts for ts, _ in series]
+        value_by_ts = {ts: float(value) for ts, value in series}
+
+        slots_per_day = max(1, int(round(24 * 60 / max(step_minutes, 1))))
+        recent_window = min(len(values), max(slots_per_day * 2, 16))
+        recent_values = values[-recent_window:]
+        recent_mean = float(np.mean(recent_values))
+        recent_std = max(1.0, float(np.std(recent_values)))
+
+        trend_window = min(len(values), max(10, slots_per_day))
+        trend_slice = values[-trend_window:]
+        recent_slope = 0.0
+        if len(trend_slice) >= 2:
+            recent_slope = float((trend_slice[-1] - trend_slice[0]) / (len(trend_slice) - 1))
+
+        slot_buckets: dict[int, list[float]] = {}
+        weekday_buckets: dict[int, list[float]] = {}
+        for ts, value in series:
+            slot = ((ts.hour * 60) + ts.minute) // max(step_minutes, 1)
+            slot_buckets.setdefault(int(slot), []).append(float(value))
+            weekday_buckets.setdefault(ts.weekday(), []).append(float(value))
+
+        slot_means = {slot: float(np.mean(bucket)) for slot, bucket in slot_buckets.items() if bucket}
+        weekday_means = {day: float(np.mean(bucket)) for day, bucket in weekday_buckets.items() if bucket}
+
+        weather_mean = float(np.mean(outside_temp_list[:points])) if outside_temp_list else 10.0
+        temp_sensitivity = min(5.0, max(-5.0, 0.08 * recent_std))
+
         results: list[float] = []
-        # Re-run MPC at each future step so the forecasted path reflects
-        # the same "receding horizon" logic we use in live operation.
+        previous_prediction = current
+        next_ts = timestamps[-1] + step
         for idx in range(points):
-            lookback = values[-history_window:] if len(values) >= history_window else values
-            baseline = float(np.mean(lookback))
-            outside_now = float(outside_temp_list[0]) if outside_temp_list else 10.0
-            outside_future = float(outside_temp_list[min(idx, len(outside_temp_list) - 1)]) if outside_temp_list else outside_now
-            outside_adjust = 0.5 * (outside_future - outside_now)
-            blend = 0.7 * current + 0.3 * baseline if idx == 0 else results[-1]
-            estimate = max(0.0, 0.7 * blend + 0.3 * (baseline + outside_adjust))
-            results.append(float(estimate))
+            slot = ((next_ts.hour * 60) + next_ts.minute) // max(step_minutes, 1)
+            slot_level = slot_means.get(int(slot), recent_mean)
+            weekday_level = weekday_means.get(next_ts.weekday(), recent_mean)
+
+            lag_values: list[tuple[float, float]] = []
+            for days_back, weight in ((1, 1.0), (2, 0.7), (3, 0.45), (7, 0.25)):
+                lag_ts = next_ts - timedelta(days=days_back)
+                lag_value = value_by_ts.get(lag_ts)
+                if lag_value is not None:
+                    lag_values.append((lag_value, weight))
+            if lag_values:
+                lag_level = float(sum(v * w for v, w in lag_values) / sum(w for _, w in lag_values))
+            else:
+                lag_level = slot_level
+
+            trend_level = recent_mean + recent_slope * min(idx + 1, slots_per_day)
+            weather = float(outside_temp_list[idx]) if idx < len(outside_temp_list) else weather_mean
+            weather_adjustment = temp_sensitivity * (weather_mean - weather) * 0.08
+
+            prediction = (
+                0.52 * lag_level
+                + 0.18 * slot_level
+                + 0.10 * weekday_level
+                + 0.10 * trend_level
+                + 0.10 * previous_prediction
+                + weather_adjustment
+            )
+
+            lower = max(0.0, recent_mean - 3.0 * recent_std)
+            upper = recent_mean + 3.0 * recent_std
+            clipped = float(np.clip(prediction, lower, upper))
+            results.append(clipped)
+            previous_prediction = clipped
+            value_by_ts[next_ts] = clipped
+            next_ts += step
+
         if len(results) < points:
-            results.extend([results[-1] if results else current] * (points - len(results)))
+            fill = results[-1] if results else current
+            results.extend([fill] * (points - len(results)))
         return results[:points]
 
     async def _build_result(self, indoor_temp: float, outside_temp_list: list[float], carbon_list: list[float]) -> dict[str, Any]:
@@ -569,3 +645,4 @@ class CarbonAwareCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._indoor_temperature_history.clear()
         self._recommended_heating_level_history.clear()
         self._recommended_setpoint_history.clear()
+
